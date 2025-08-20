@@ -86,7 +86,7 @@ public class DoctorsManagementUI {
     }
 
     private void addDoctorUI() {
-        String id = generateNextDoctorId();
+        String id = doctorsMgmt.generateNextDoctorId();
 
         System.out.println("Assigned Doctor ID: " + id);
         String name;
@@ -106,26 +106,6 @@ public class DoctorsManagementUI {
         } else {
             messageUI.displayInvalidAddDoctor();
         }
-    }
-
-    private String generateNextDoctorId() {
-        int maxNum = 0;
-        List<Doctor> allDoctors = doctorsMgmt.getAllDoctors();
-        for (Doctor doc : allDoctors) {
-            String docId = doc.getId();
-            if (docId != null && docId.startsWith("D")) {
-                try {
-                    int num = Integer.parseInt(docId.substring(1));
-                    if (num > maxNum) {
-                        maxNum = num;
-                    }
-                } catch (NumberFormatException e) {
-
-                }
-            }
-        }
-        int nextNum = maxNum + 1;
-        return String.format("D%03d", nextNum);
     }
 
     private void searchDoctor() {
@@ -576,7 +556,7 @@ public class DoctorsManagementUI {
                 continue;
             }
 
-            if (!doc.isDateWithinDutyDay(doc.getDutySchedule(), apptDate)) {
+            if (!doctorsMgmt.isDateWithinDutyDay(doc.getDutySchedule(), apptDate)) {
                 messageUI.displayCannotBookDoctorNoHaveDutySchedule();
                 continue;
             }
@@ -589,7 +569,7 @@ public class DoctorsManagementUI {
             while (true) {
                 System.out.print("Enter Appointment Time (e.g., 10am, 10:30am, 2pm, 2:15pm): ");
                 String timeStr = sc.nextLine().trim().toLowerCase();
-                apptTime = doc.parseTimeWithMin(timeStr);
+                apptTime = doctorsMgmt.parseTimeWithMin(timeStr);
                 if (apptTime == null) {
                     messageUI.displayInvalidTimeFormat();
                     continue;
@@ -1054,7 +1034,7 @@ public class DoctorsManagementUI {
             if (timeStr.isEmpty()) {
                 break;
             }
-            newTime = doc.parseTimeWithMin(timeStr);
+            newTime = doctorsMgmt.parseTimeWithMin(timeStr);
             if (newTime == null) {
                 messageUI.displayInvalidTimeFormat();
                 continue;

@@ -17,6 +17,7 @@ public class Doctor {
     private List<Appointment> appointments = new ArrayList<>();
     private List<Shift> shifts = new ArrayList<>();
     private List<Leave> leaves = new ArrayList<>();
+    private DoctorsManagement doctorsMgmt;
 
     public Doctor(String id, String name, String dutySchedule, boolean isAvailable) {
         this.id = id;
@@ -72,107 +73,7 @@ public class Doctor {
         this.isAvailable = available;
     }
 
-    public boolean isDateWithinDutyDay(String dutySchedule, LocalDate date) {
-        String[] parts = dutySchedule.split(" ");
-        if (parts.length < 1) {
-            return false;
-        }
-        String daysPart = parts[0];
-
-        Set<Integer> dutyDays = new HashSet<>();
-        if (daysPart.contains("-")) {
-            String[] range = daysPart.split("-");
-            int start = dayOfWeekToInt(range[0]);
-            int end = dayOfWeekToInt(range[1]);
-            for (int i = start; i <= end; i++) {
-                dutyDays.add(i);
-            }
-        } else {
-            String[] days = daysPart.split(",");
-            for (String d : days) {
-                dutyDays.add(dayOfWeekToInt(d));
-            }
-        }
-        int apptDay = date.getDayOfWeek().getValue();
-        return dutyDays.contains(apptDay);
-    }
-
-    public boolean isTimeWithinDutyTime(String dutySchedule, LocalDate date, LocalTime time) {
-        String[] parts = dutySchedule.split(" ");
-        if (parts.length < 2) {
-            return false;
-        }
-        String timePart = parts[1];
-        String[] timeRange = timePart.split("-");
-        if (timeRange.length != 2) {
-            return false;
-        }
-        LocalTime startTime = parseTimeWithMin(timeRange[0]);
-        LocalTime endTime = parseTimeWithMin(timeRange[1]);
-        if (startTime == null || endTime == null) {
-            return false;
-        }
-
-        if (!time.isBefore(endTime.minusMinutes(20))) {
-            return false;
-        }
-        return !time.isBefore(startTime) && time.isBefore(endTime);
-    }
-
-    public LocalTime parseTimeWithMin(String timeStr) {
-        try {
-            timeStr = timeStr.replace(" ", "");
-            int hour = 0, minute = 0;
-            if (timeStr.endsWith("am") || timeStr.endsWith("pm")) {
-                String base = timeStr.substring(0, timeStr.length() - 2);
-                String[] parts = base.split(":");
-                hour = Integer.parseInt(parts[0]);
-                if (parts.length == 2) {
-                    minute = Integer.parseInt(parts[1]);
-                }
-                if (timeStr.endsWith("am")) {
-                    if (hour == 12) {
-                        hour = 0;
-                    }
-                } else {
-                    if (hour != 12) {
-                        hour += 12;
-                    }
-                }
-                if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-                    return null;
-                }
-                return LocalTime.of(hour, minute);
-            }
-        } catch (Exception e) {
-            return null;
-        }
-        return null;
-    }
-
-    public int dayOfWeekToInt(String day) {
-        switch (day.trim()) {
-            case "Mon":
-                return 1;
-            case "Tue":
-                return 2;
-            case "Wed":
-                return 3;
-            case "Thu":
-                return 4;
-            case "Fri":
-                return 5;
-            case "Sat":
-                return 6;
-            case "Sun":
-                return 7;
-            default:
-                return -1;
-        }
-    }
-
     public AvailabilityStatus isAvailableAt(LocalDate date, LocalTime time) {
-        // Check leave
         for (Leave leave : leaves) {
             if ((date.isEqual(leave.getStartDate()) || date.isAfter(leave.getStartDate()))
                     && (date.isEqual(leave.getEndDate()) || date.isBefore(leave.getEndDate()))) {
@@ -180,17 +81,14 @@ public class Doctor {
             }
         }
 
-        // Check duty day
-        if (!isDateWithinDutyDay(dutySchedule, date)) {
+        if (!doctorsMgmt.isDateWithinDutyDay(dutySchedule, date)) {
             return new AvailabilityStatus(false, "Not within duty schedule day");
         }
 
-        // Check duty time
-        if (!isTimeWithinDutyTime(dutySchedule, date, time)) {
+        if (!doctorsMgmt.isTimeWithinDutyTime(dutySchedule, date, time)) {
             return new AvailabilityStatus(false, "Not within duty schedule time");
         }
 
-        // Check shift
         boolean withinShift = false;
         for (Shift s : shifts) {
             for (TimeRange tr : s.getShiftRanges()) {
@@ -207,7 +105,6 @@ public class Doctor {
             return new AvailabilityStatus(false, "Not within shift time");
         }
 
-        // Check appointment conflict (0-30 min)
         for (Appointment appt : appointments) {
             if (appt.getDate().equals(date)) {
                 long mins = Math.abs(java.time.Duration.between(appt.getTime(), time).toMinutes());
