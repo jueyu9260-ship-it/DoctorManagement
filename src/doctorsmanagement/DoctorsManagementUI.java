@@ -633,7 +633,7 @@ public class DoctorsManagementUI {
         System.out.println("Doctor Name: " + doc.getName());
         System.out.println("Doctor Duty Schedule: " + doc.getDutySchedule());
 
-        List<TimeRange> dutyRanges = parseDutySchedule(doc.getDutySchedule());
+        List<TimeRange> dutyRanges = doctorsMgmt.parseDutySchedule(doc.getDutySchedule());
         if (dutyRanges.isEmpty()) {
             messageUI.displayCannotAssignShift();
             return;
@@ -651,7 +651,7 @@ public class DoctorsManagementUI {
                 break;
             }
 
-            TimeRange shiftRange = parseTimeRange(shiftTimeStr);
+            TimeRange shiftRange = doctorsMgmt.parseTimeRange(shiftTimeStr);
             if (shiftRange == null) {
                 messageUI.displayInvalidTimeRange();
                 continue;
@@ -698,66 +698,6 @@ public class DoctorsManagementUI {
             System.out.println(" - " + assigned);
         }
         return;
-    }
-
-    private List<TimeRange> parseDutySchedule(String dutySchedule) {
-        List<TimeRange> ranges = new ArrayList<>();
-        String[] parts = dutySchedule.split(" ");
-        if (parts.length < 2) {
-            return ranges;
-        }
-        String timePart = parts[1];
-        String[] timeRanges = timePart.split(",");
-        for (String tr : timeRanges) {
-            TimeRange range = parseTimeRange(tr.trim());
-            if (range != null) {
-                ranges.add(range);
-            }
-        }
-        return ranges;
-    }
-
-    private TimeRange parseTimeRange(String s) {
-        String[] split = s.split("-");
-        if (split.length != 2) {
-            return null;
-        }
-        LocalTime start = parseTime(split[0].trim());
-        LocalTime end = parseTime(split[1].trim());
-        if (start == null || end == null || !start.isBefore(end)) {
-            return null;
-        }
-        return new TimeRange(start, end);
-    }
-
-    private LocalTime parseTime(String t) {
-        try {
-            t = t.toLowerCase().replace(" ", "");
-            int h, m = 0;
-            String digits, ampm;
-            if (t.endsWith("am") || t.endsWith("pm")) {
-                ampm = t.substring(t.length() - 2);
-                digits = t.substring(0, t.length() - 2);
-                String[] p = digits.split(":");
-                h = Integer.parseInt(p[0]);
-                if (p.length == 2) {
-                    m = Integer.parseInt(p[1]);
-                }
-                if (ampm.equals("am")) {
-                    if (h == 12) {
-                        h = 0;
-                    }
-                } else {
-                    if (h != 12) {
-                        h += 12;
-                    }
-                }
-                return LocalTime.of(h, m);
-            }
-        } catch (Exception e) {
-            return null;
-        }
-        return null;
     }
 
     private void makeLeave(Doctor doc) {
